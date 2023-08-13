@@ -10,6 +10,7 @@ import io.vertx.pgclient.PgException;
 import org.acme.domain.Pessoa;
 import org.acme.domain.PessoaInvalidError;
 import org.acme.domain.PessoaNotFoundError;
+import org.acme.domain.port.CountPessoas;
 import org.acme.domain.port.CreatePessoa;
 import org.acme.domain.port.GetPessoaById;
 import org.acme.domain.port.ListPessoasByText;
@@ -23,7 +24,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Singleton
-public class PgQueriesAdapter implements ListPessoasByText, GetPessoaById, CreatePessoa {
+public class PgQueriesAdapter implements ListPessoasByText, GetPessoaById, CreatePessoa, CountPessoas {
 
     @Inject
     io.vertx.mutiny.pgclient.PgPool pgClient;
@@ -54,10 +55,18 @@ public class PgQueriesAdapter implements ListPessoasByText, GetPessoaById, Creat
     @Override
     public Multi<Pessoa> byText(String searchText) {
         return pgClient.preparedQuery("select * from public.pessoa where " +
-                        "to_tsvector('simple', apelido || ' ' || nome || ' ' || stack) @@ plainto_tsquery($1)")
+                        "to_tsvector('simple', apelido || ' ' || nome || ' ' || stack) @@ plainto_tsquery($1) limit 50")
                 .execute(Tuple.of(searchText))
                 .onItem().transformToMulti(rs -> Multi.createFrom().iterable(rs))
                 .onItem().transform(this::fromRow);
+    }
+
+    @Override
+    public Uni<Long> doCount() {
+        return pgClient.preparedQuery("select count(*) from public.pessoa")
+                .execute()
+                .onItem().transform(RowSet::iterator)
+                .onItem().transform(iterator -> iterator.next().getLong("count"));
     }
 
     private Pessoa fromRow(Row row) {
