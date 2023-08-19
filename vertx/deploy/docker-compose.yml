@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   api1: # API - Instância 01
-    image: api-rinha-backend:latest
+    image: andre237/api-rinha-backend-quarkus:2.0.0
     hostname: api1
     depends_on:
       - db
@@ -14,7 +14,7 @@ services:
           memory: '500MB'
 
   api2: # API - Instância 01
-    image: api-rinha-backend:latest
+    image: andre237/api-rinha-backend-quarkus:2.0.0
     hostname: api2
     depends_on:
       - db
